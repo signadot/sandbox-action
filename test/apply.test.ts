@@ -18,8 +18,8 @@ const prBuild: Env = {
   GITHUB_REF: "refs/pull/12/merge",
   GITHUB_SHA: "abc1234def5678901234567890abcdef12345678",
 };
-const forkInputs = { fork: "kind=Deployment,namespace=hotrod,name=route", cluster: "prod-eks" };
-const rendered = "name: route-12\nspec:\n  cluster: prod-eks\n";
+const forkInputs = { fork: "kind=Deployment,namespace=hotrod,name=route", cluster: "stage-eks" };
+const rendered = "name: route-12\nspec:\n  cluster: stage-eks\n";
 const applied = {
   name: "route-12",
   routingKey: "rk123",
@@ -202,7 +202,7 @@ describe("apply", () => {
     // Each of these fails the step on the inputs route.
     const leftovers = { env: "DEBUG_TOOLBAR-  # a comment", endpoints: "frontend", resources: "- plugn: x" };
     const out = await captureStdout(() =>
-      withInputsAsync({ ...leftovers, "template-file": template, cluster: "prod-eks", "dry-run": "true" }, () =>
+      withInputsAsync({ ...leftovers, "template-file": template, cluster: "stage-eks", "dry-run": "true" }, () =>
         apply(rt),
       ),
     );
@@ -222,7 +222,7 @@ describe("apply", () => {
     for (const [stderr, want] of cases) {
       const { rt } = fakeRuntime(prBuild, { code: 99 }, { code: 1, stderr });
       await assert.rejects(
-        withInputsAsync({ "template-file": template, cluster: "prod-eks", "dry-run": "true" }, () => apply(rt)),
+        withInputsAsync({ "template-file": template, cluster: "stage-eks", "dry-run": "true" }, () => apply(rt)),
         want,
       );
     }
@@ -267,7 +267,7 @@ describe("apply", () => {
     fs.writeFileSync(template, 'name: "@{name}"\nspec:\n  cluster: "@{cluster}"\n');
     const { rt, calls } = fakeRuntime(prBuild, { code: 99 }, { stdout: rendered });
     await withInputsAsync(
-      { "template-file": template, set: "name=mine\nteam=payments", cluster: "prod-eks", "dry-run": "true" },
+      { "template-file": template, set: "name=mine\nteam=payments", cluster: "stage-eks", "dry-run": "true" },
       () => apply(rt),
     );
     // The template is rendered, then the overlaid result is rendered again.
@@ -283,7 +283,7 @@ describe("apply", () => {
       "--set",
       "team=payments",
       "--set",
-      "cluster=prod-eks",
+      "cluster=stage-eks",
     ]);
     // Only the template is templated; the overlaid result is a finished document.
     assert.ok(calls[1].args.includes("--no-template"));

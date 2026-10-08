@@ -42,6 +42,18 @@ there is deliberately no moving `@v0` or `@v1` tag: while the interface can stil
 change, moving to a new version should be a change you make, not one that happens to
 you.
 
+To pin to a commit rather than a tag — which organisations that require actions to be
+SHA-pinned have to do — use the full SHA of the commit the release points at, with the
+version as a trailing comment:
+
+```yaml
+- uses: signadot/sandbox-action@<full-commit-sha> # v0.1.0
+```
+
+The SHA is on the [release page](https://github.com/signadot/sandbox-action/releases/tag/v0.1.0),
+or from `gh api repos/signadot/sandbox-action/commits/v0.1.0 --jq .sha`. Dependabot and
+Renovate update the SHA and the comment together when a new release is out.
+
 The Action needs `signadot` CLI **v1.9.0 or later**, and by default runs the release
 it was tested with, **v1.9.0**: pinning the Action pins the CLI too, so a CLI release <!-- cli-pin -->
 cannot change what your workflow does. Which CLI it runs, most explicit first:
@@ -67,7 +79,7 @@ own `signadot` on `PATH`, or `SIGNADOT_CLI_PATH`.
   with:
     api-key: ${{ secrets.SIGNADOT_API_KEY }}
     org: acme
-    cluster: prod-eks
+    cluster: stage-eks
     fork: kind=Deployment,namespace=hotrod,name=route
     image: ghcr.io/acme/route:${{ github.sha }}
 
@@ -122,7 +134,7 @@ per fork; otherwise put `image=` on each line.
   with:
     api-key: ${{ secrets.SIGNADOT_API_KEY }}
     org: acme
-    cluster: prod-eks
+    cluster: stage-eks
     image: ghcr.io/acme/{workload}:${{ github.sha }}
     fork: |
       kind=Deployment,namespace=hotrod,name=route
@@ -135,7 +147,7 @@ per fork; otherwise put `image=` on each line.
   with:
     api-key: ${{ secrets.SIGNADOT_API_KEY }}
     org: acme
-    cluster: prod-eks
+    cluster: stage-eks
     fork: |
       kind=Deployment,namespace=hotrod,name=route,image=ghcr.io/acme/route:${{ github.sha }}
       kind=Deployment,namespace=web,name=frontend,image=ghcr.io/acme/frontend:${{ github.sha }}
@@ -172,7 +184,7 @@ starts with `#` is skipped.
   with:
     api-key: ${{ secrets.SIGNADOT_API_KEY }}
     org: acme
-    cluster: prod-eks
+    cluster: stage-eks
     ttl: 2d
     ttl-offset-from: updatedAt      # the clock restarts on every push
     image: ghcr.io/acme/{workload}:${{ github.sha }}
@@ -227,7 +239,7 @@ a `{kind, namespace, name}` object, with an optional `image`.
   with:
     api-key: ${{ secrets.SIGNADOT_API_KEY }}
     org: acme
-    cluster: prod-eks
+    cluster: stage-eks
     image: ghcr.io/acme/{workload}:${{ github.sha }}
     fork: ${{ steps.mkforks.outputs.list }}
 ```
@@ -245,7 +257,7 @@ one, so nothing else about the step changes:
 - uses: signadot/sandbox-action@v0.1.0
   with:
     api-key: ${{ secrets.SIGNADOT_API_KEY }}
-    cluster: prod-eks                        # unchanged
+    cluster: stage-eks                        # unchanged
     template-file: .signadot/sandbox.yaml    # replaces the fork inputs
     set: |
       image=ghcr.io/acme/route:${{ github.sha }}
@@ -286,7 +298,7 @@ name and no labels at all, a pull-request run applies:
 ```yaml
 name: acme-preview
 spec:
-  cluster: prod-eks
+  cluster: stage-eks
   forks:
   - customizations:
       images:
@@ -553,8 +565,8 @@ The API takes them as a pair and rejects a spec carrying one without the other, 
 are stamped as a set or not at all: a run with no pull request gets neither, and if
 either key is already set — by your `labels` input or by your own document — both are
 left to you, provided they name this pull request. Completing a half-set pair would
-produce a sandbox correlated to your repository and our pull request, which is worse
-than leaving it alone.
+produce a sandbox correlated to your repository and someone else's pull request, which
+is worse than leaving it alone.
 
 The API also reserves the whole `signadot/` prefix, accepting no other key under it.
 The Action checks that itself, so a bad key is reported by name before anything is
@@ -614,7 +626,7 @@ signadot-client-context: integration=sandbox-action,integration-version=0.1.0
 ```
 
 That is all it sends: the name and version of this Action. It adds nothing to your
-sandboxes, and it is how we count which versions of the Action are in use. It needs a
+sandboxes, and it is how Signadot counts which versions of the Action are in use. It needs a
 CLI that supports it. With an older CLI, the Action runs the command again without the
 header, so reporting can never fail your job; the log then says the run was not counted.
 

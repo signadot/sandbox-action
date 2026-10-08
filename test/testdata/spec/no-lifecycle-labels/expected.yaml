@@ -1,6 +1,6 @@
 name: my-explicit-sandbox
 spec:
-  cluster: prod-eks
+  cluster: stage-eks
   labels:
     team: payments
   ttl:

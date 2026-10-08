@@ -1,6 +1,6 @@
 {
   "_comment": "Env with every scope the grammar has — for every fork, for one fork, a removal for every fork and a removal for one — plus a ttl that counts from the last apply.",
-  "cluster": "prod-eks",
+  "cluster": "stage-eks",
   "ttl": "2d",
   "ttl-offset-from": "updatedAt",
   "image": "ghcr.io/acme/{workload}:abc1234",

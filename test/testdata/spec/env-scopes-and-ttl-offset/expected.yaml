@@ -1,6 +1,6 @@
 name: route-12
 spec:
-  cluster: prod-eks
+  cluster: stage-eks
   labels:
     signadot/github-pull-request: "12"
     signadot/github-repo: acme/route
