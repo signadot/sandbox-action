@@ -77,6 +77,10 @@ Releases are cut by maintainers as exact version tags (`v0.1.0`, `v0.2.0`, …).
 While the Action is `0.x` there are no moving major tags, so users pin an exact
 version and upgrade deliberately.
 
+The body of each GitHub release is its entry in [CHANGELOG.md](CHANGELOG.md), written
+and reviewed before the tag is cut: releases are immutable once published, so the
+notes cannot be corrected afterwards.
+
 ## License
 
 By contributing, you agree that your contributions are licensed under the

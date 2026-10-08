@@ -2,10 +2,12 @@
 
 ## Reporting a vulnerability
 
-Please email **security@signadot.com** rather than opening a public issue or pull
-request. Include what you found, how to reproduce it, and the version of the
-Action (`signadot/sandbox-action@vX.Y.Z`) and of the `signadot` CLI involved. We aim
-to acknowledge reports within three working days.
+Please email **security@signadot.com**, or use GitHub's private reporting form —
+[Report a vulnerability](https://github.com/signadot/sandbox-action/security/advisories/new)
+under this repository's **Security** tab — rather than opening a public issue or pull
+request. Both reach the same people. Include what you found, how to reproduce it, and
+the version of the Action (`signadot/sandbox-action@vX.Y.Z`) and of the `signadot` CLI
+involved. We aim to acknowledge reports within three working days.
 
 Vulnerabilities in the Signadot platform itself, rather than in this Action, go to
 the same address.
