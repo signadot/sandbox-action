@@ -1,0 +1,21 @@
+{
+  "action": "synchronize",
+  "number": 4242,
+  "pull_request": {
+    "number": 4242,
+    "head": {
+      "ref": "feat/checkout-latency",
+      "sha": "abc1234def5678901234567890abcdef12345678"
+    },
+    "base": {
+      "ref": "main"
+    }
+  },
+  "repository": {
+    "name": "hotrod",
+    "full_name": "signadot/hotrod",
+    "owner": {
+      "login": "signadot"
+    }
+  }
+}

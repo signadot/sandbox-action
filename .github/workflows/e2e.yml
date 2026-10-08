@@ -1,0 +1,292 @@
+name: E2E
+
+# Runs the Action the way a consumer does (`uses: ./`) rather than calling into
+# its modules. The dry-run job needs no Signadot credentials; the live job really
+# creates a sandbox and is triggered by hand. Both let the Action install the
+# CLI release it defaults to, as it does for everyone else.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      cluster:
+        description: 'Signadot cluster to create the sandbox in'
+        default: 'demo'
+      namespace:
+        description: 'Namespace holding the workload to fork'
+        default: 'hotrod-istio'
+      image:
+        description: 'Image to run in the forked workload'
+        default: 'signadot/hotrod:latest'
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+
+      - name: Render from the fork inputs
+        id: flat
+        uses: ./
+        with:
+          api-key: dry-run-needs-no-credentials
+          cluster: demo
+          image: 'signadot/hotrod-{workload}:{sha}'
+          fork: |
+            kind=Deployment,namespace=hotrod-istio,name=route
+            kind=Deployment,namespace=hotrod-istio,name=frontend
+          env: |
+            LOG_LEVEL=debug
+            frontend:LOG_LEVEL=trace
+          endpoints: |
+            frontend=http://frontend.hotrod-istio.svc:8080
+          labels: e2e=true
+          ttl: 2d
+          dry-run: true
+
+      - name: Check the rendered document
+        env:
+          RENDERED: ${{ steps.flat.outputs.rendered-spec }}
+          NAME: ${{ steps.flat.outputs.sandbox-name }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.number }}
+        run: |
+          test -n "$NAME" || { echo "::error::sandbox-name output was empty"; exit 1; }
+          # The lifecycle pair is stamped only when there is a pull request to
+          # correlate with: on a push or a manual run there is none, so the
+          # pair must be absent rather than present.
+          if [ "$EVENT" = pull_request ]; then
+            lifecycle=(--label "signadot/github-repo=$REPO" --label "signadot/github-pull-request=$PR")
+          else
+            lifecycle=(--absent spec.labels.signadot/github-repo --absent spec.labels.signadot/github-pull-request)
+          fi
+          node test/e2e/assert-rendered.mjs \
+            --name "$NAME" \
+            --name-pattern '^sandbox-action-([0-9]+|[0-9a-f]{7})$' \
+            "${lifecycle[@]}" \
+            --label e2e=true \
+            --fork route --fork frontend \
+            --path spec.cluster=demo \
+            --path spec.ttl.duration=2d \
+            --path 'spec.defaultRouteGroup.endpoints.0.target=http://frontend.hotrod-istio.svc:8080' <<< "$RENDERED"
+          # The API accepts only the GitHub pair under signadot/, so nothing
+          # else may appear there.
+          if grep -E '^\s+signadot/' <<< "$RENDERED" | grep -vqE 'signadot/github-(repo|pull-request):'; then
+            echo "::error::a signadot/ label other than the GitHub pair was stamped"; exit 1
+          fi
+
+      - name: Render a computed fork list, with a resource, opting out of the lifecycle labels
+        id: computed
+        uses: ./
+        with:
+          api-key: dry-run-needs-no-credentials
+          cluster: demo
+          name: e2e-explicit-name
+          fork: '[{"kind":"Deployment","namespace":"hotrod-istio","name":"route","image":"signadot/hotrod:latest"}]'
+          env: |
+            DB_HOST=${resource:customerdb.host}
+          resources: |
+            - name: customerdb
+              plugin: hotrod-mariadb
+              params:
+                dbname: customer
+          lifecycle-labels: false
+          dry-run: true
+
+      - name: Check the computed document
+        env:
+          RENDERED: ${{ steps.computed.outputs.rendered-spec }}
+        run: |
+          node test/e2e/assert-rendered.mjs \
+            --name e2e-explicit-name \
+            --fork route \
+            --path 'spec.forks.0.customizations.env.0.valueFrom.resource.name=customerdb' \
+            --absent 'spec.labels.signadot/github-repo' \
+            --absent 'spec.ttl' <<< "$RENDERED"
+
+      # A template is an input on the main action, not a different action, so that
+      # a workflow which outgrows the fork inputs changes what it passes rather
+      # than what it calls.
+      - name: Render a repository template
+        id: template
+        uses: ./
+        with:
+          api-key: dry-run-needs-no-credentials
+          cluster: demo
+          template-file: test/e2e/template.yaml
+          set: |
+            namespace=hotrod-istio
+            image=signadot/hotrod:latest
+          description: described on the template path
+          dry-run: true
+
+      - name: Check the templated document
+        env:
+          RENDERED: ${{ steps.template.outputs.rendered-spec }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.number }}
+        run: |
+          # The lifecycle pair is stamped only when there is a pull request to
+          # correlate with: on a push or a manual run there is none, so the
+          # pair must be absent rather than present.
+          if [ "$EVENT" = pull_request ]; then
+            lifecycle=(--label "signadot/github-repo=$REPO" --label "signadot/github-pull-request=$PR")
+          else
+            lifecycle=(--absent spec.labels.signadot/github-repo --absent spec.labels.signadot/github-pull-request)
+          fi
+          node test/e2e/assert-rendered.mjs \
+            --name e2e-from-template \
+            --fork route \
+            "${lifecycle[@]}" \
+            --path spec.cluster=demo \
+            --path 'spec.description=described on the template path' <<< "$RENDERED"
+
+      # The same run through the alias, which exists because that is where people
+      # look for it.
+      - name: Render the same template through the from-template alias
+        id: alias
+        uses: ./from-template
+        with:
+          api-key: dry-run-needs-no-credentials
+          cluster: demo
+          template-file: test/e2e/template.yaml
+          set: |
+            namespace=hotrod-istio
+            image=signadot/hotrod:latest
+          dry-run: true
+
+      - name: Check both front doors agree
+        env:
+          VIA_MAIN: ${{ steps.template.outputs.rendered-spec }}
+          VIA_ALIAS: ${{ steps.alias.outputs.rendered-spec }}
+        run: |
+          # The main run carries a description the alias run does not, so compare
+          # what the template itself produced.
+          diff <(grep -v 'described on the template path' <<< "$VIA_MAIN") \
+               <(cat <<< "$VIA_ALIAS") \
+            || { echo "::error::the two front doors rendered different specs"; exit 1; }
+
+      - name: Warn, rather than silently drop, inputs the template owns
+        id: ignored
+        uses: ./
+        with:
+          api-key: dry-run-needs-no-credentials
+          cluster: demo
+          template-file: test/e2e/template.yaml
+          set: |
+            namespace=hotrod-istio
+            image=signadot/hotrod:latest
+          image: 'signadot/hotrod:{sha}'
+          dry-run: true
+      - name: Check the ignored input was reported
+        env:
+          RENDERED: ${{ steps.ignored.outputs.rendered-spec }}
+        run: |
+          # The template's image wins; the warning is what tells the caller their
+          # image input did nothing. Annotations are not readable from here, so
+          # this checks the outcome the warning is about.
+          grep -q 'signadot/hotrod:latest' <<< "$RENDERED" \
+            || { echo "::error::the template's own image did not survive"; exit 1; }
+
+      - name: Reject an input mistake
+        uses: ./
+        id: bad
+        continue-on-error: true
+        with:
+          api-key: dry-run-needs-no-credentials
+          cluster: demo
+          fork: |
+            route
+          dry-run: true
+      - name: Check the mistake was rejected
+        if: steps.bad.outcome != 'failure'
+        run: |
+          echo "::error::the Action accepted a fork line that names no kind or namespace"
+          exit 1
+
+  install-cli:
+    # Exercises the install-cli sub-action on its own, against a real release.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+
+      - id: install
+        uses: ./install-cli
+      # The CLI has no `version` command, so runnability is checked by asking it
+      # for its usage and looking for a command that should be there.
+      - name: Check the CLI is on PATH and runnable
+        run: |
+          test -x "${{ steps.install.outputs.cli-path }}" \
+            || { echo "::error::cli-path is not executable"; exit 1; }
+          signadot --help | grep -q '^  sandbox' \
+            || { echo "::error::signadot --help did not list the sandbox command"; exit 1; }
+
+  live:
+    # Creates a real sandbox and deletes it at the end of the job.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+
+      - name: Create a sandbox
+        id: sandbox
+        uses: ./
+        with:
+          api-key: ${{ secrets.SIGNADOT_API_KEY }}
+          org: ${{ vars.SIGNADOT_ORG || 'signadot' }}
+          cluster: ${{ inputs.cluster }}
+          name: sbx-action-e2e-${{ github.run_number }}
+          fork: kind=Deployment,namespace=${{ inputs.namespace }},name=route
+          image: ${{ inputs.image }}
+          labels: e2e=true
+          ttl: 30m
+          wait: true
+          wait-timeout: 5m
+
+      - name: Report what was applied
+        env:
+          NAME: ${{ steps.sandbox.outputs.sandbox-name }}
+          ROUTING_KEY: ${{ steps.sandbox.outputs.routing-key }}
+        run: |
+          echo "sandbox=$NAME routing-key=$ROUTING_KEY"
+          test -n "$NAME" || { echo "::error::no sandbox name was returned"; exit 1; }
+          test -n "$ROUTING_KEY" || { echo "::error::no routing key was returned"; exit 1; }
+
+      # Cleanup is an explicit step the workflow places itself, which is why the
+      # Action has no delete-on input. `if: always()` tears the sandbox down
+      # even when an earlier step failed.
+      - name: Delete the sandbox
+        if: always() && steps.sandbox.outputs.sandbox-name != ''
+        uses: ./delete
+        with:
+          api-key: ${{ secrets.SIGNADOT_API_KEY }}
+          org: ${{ vars.SIGNADOT_ORG || 'signadot' }}
+          name: ${{ steps.sandbox.outputs.sandbox-name }}

@@ -1,0 +1,6 @@
+{
+  "_comment": "Two forks with no YAML anywhere: one line each, fully named, image inline. The Action's own grammar, so this case has no counterpart in the CLI's fixtures.",
+  "cluster": "prod-eks",
+  "fork": "kind=Deployment,namespace=hotrod,name=route,image=ghcr.io/acme/route:abc1234\nkind=Rollout,namespace=web,name=frontend,image=ghcr.io/acme/frontend:abc1234",
+  "env": "LOG_LEVEL=debug"
+}

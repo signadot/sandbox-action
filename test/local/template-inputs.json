@@ -1,0 +1,16 @@
+{
+  "github": {
+    "repository": "signadot/hotrod",
+    "ref": "refs/pull/4242/merge",
+    "sha": "abc1234def5678901234567890abcdef12345678",
+    "headRef": "local/harness",
+    "prNumber": 4242
+  },
+  "inputs": {
+    "template-file": "test/e2e/template.yaml",
+    "set": "cluster=my-cluster\nnamespace=hotrod\nimage=ghcr.io/signadot/hotrod/route:abc1234",
+    "description": "from the local harness",
+    "labels": "team=platform",
+    "wait": "false"
+  }
+}

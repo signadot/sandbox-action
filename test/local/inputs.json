@@ -1,0 +1,20 @@
+{
+  "github": {
+    "repository": "signadot/hotrod",
+    "ref": "refs/pull/4242/merge",
+    "sha": "abc1234def5678901234567890abcdef12345678",
+    "headRef": "local/harness",
+    "prNumber": 4242
+  },
+  "inputs": {
+    "cluster": "my-cluster",
+    "image": "ghcr.io/signadot/hotrod/{workload}:{sha}",
+    "fork": "kind=Deployment,namespace=hotrod,name=route\nkind=Deployment,namespace=hotrod,name=frontend",
+    "env": "LOG_LEVEL=debug\nfrontend:LOG_LEVEL=trace",
+    "endpoints": "frontend=http://frontend.hotrod.svc:8080",
+    "labels": "team=platform",
+    "ttl": "2d",
+    "wait": "false",
+    "lifecycle-labels": "true"
+  }
+}

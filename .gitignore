@@ -1,0 +1,14 @@
+node_modules/
+lib/
+*.log
+.DS_Store
+
+# `pnpm run act` builds the signadot CLI here for the container's platform.
+bin/
+
+# `pnpm test` compiles to here so the built-in node test runner can run the
+# suite without a TypeScript loader.
+.test-build/
+
+# dist/ is intentionally committed: GitHub Actions runs the bundled JavaScript
+# in dist/ directly, so it must be checked in.

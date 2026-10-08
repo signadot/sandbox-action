@@ -1,0 +1,158 @@
+name: 'Signadot Sandbox'
+description: 'Ephemeral preview environments for Kubernetes microservices — create a Signadot sandbox for this PR'
+author: 'Signadot'
+branding:
+  icon: 'box'
+  color: 'purple'
+
+# Two things are always this Action's: identity (the name derived from the
+# repository and pull request) and lifecycle (the labels, the TTL, the waiting).
+# The shape of the sandbox is the flat inputs below, or a document you own —
+# `template-file` or `spec`. When a document owns it, the inputs that describe
+# the sandbox stop applying and the Action says so; the inputs that describe how
+# CI behaves keep working unchanged.
+
+inputs:
+  # ── Auth & targeting ──────────────────────────────
+  api-key:
+    description: 'Signadot API key. Required unless `dry-run` is true, which needs no credentials.'
+    required: false
+  org:
+    description: 'Signadot org name (required unless resolvable from config or SIGNADOT_ORG)'
+    required: false
+  cluster:
+    description: >
+      Cluster name in Signadot. Required unless your template or spec sets one, and
+      it wins if both do — which cluster a workflow targets is a property of the
+      workflow, not of a file committed to the repository. A template has to
+      contain `cluster: '@{cluster}'` (bound from this input) or a literal
+      cluster: the CLI will not render one without.
+    required: false
+
+  # ── Identity & lifecycle ──────────────────────────
+  name:
+    description: >
+      Sandbox name, usually built from the workflow's context: the repository
+      name and the pull request number, in your own house style. Wins over a
+      name in your template or spec. Used exactly as written, and refused unless
+      it is at most 30 lowercase letters, digits and '-', starting with a letter.
+      Prefer the derived name. A name of pr- and the pull request number is valid
+      for any repository; one built from the repository name may not be. When unset, the Action derives <repo>-<n> from the
+      repository and pull request number.
+    required: false
+  description:
+    description: 'Free-text description shown alongside the sandbox, unless your document sets one'
+    required: false
+  ttl:
+    description: >
+      How long the sandbox lives, e.g. 2d or 90m, unless your document sets one.
+      Unset by default: deletion is normally driven by the lifecycle labels and the
+      Signadot GitHub App when the pull request closes. Set this if you want an
+      expiry as well.
+    required: false
+  ttl-offset-from:
+    description: >
+      What the ttl counts from: createdAt (the API's default) or updatedAt, which
+      restarts the clock every time the sandbox is applied. Only with `ttl`.
+    required: false
+  labels:
+    description: 'Multiline KEY=VALUE sandbox labels, merged with any in your document'
+    required: false
+  lifecycle-labels:
+    description: >
+      Stamp the signadot/github-repo and signadot/github-pull-request labels, which
+      let the Signadot GitHub App delete the sandbox when the pull request closes.
+      They are set as a pair, and only when a pull request is detected. Labels that
+      name a different pull request fail the step; set this to false to say that is
+      deliberate, and to opt out of the integration.
+    default: 'true'
+  wait:
+    description: 'Wait for the sandbox to be Ready'
+    default: 'true'
+  wait-timeout:
+    description: 'How long to wait for Ready'
+    default: '10m'
+
+  # ── The shape of the sandbox ──────────────────────
+  fork:
+    description: >
+      Workloads to fork, one per line, each fully named:
+      kind=Deployment,namespace=hotrod,name=route. An optional image= on the line
+      overrides `image` for that fork. A JSON array of {kind, namespace, name, image}
+      objects is accepted too, for a list a previous step computed. Exclusive with
+      `template-file` and `spec`.
+    required: false
+  image:
+    description: >
+      The image every fork runs, e.g. ghcr.io/acme/{workload}:{sha}. Placeholders:
+      {workload}, {namespace}, {sha}, {branch}, {pr}. {sha} is GITHUB_SHA, which on
+      pull_request_target is the base branch's commit. With more than one fork it
+      must use {workload} or {namespace}, or say image= on each fork line instead.
+    required: false
+  env:
+    description: >
+      Multiline KEY=VALUE applied to every fork, and workload:KEY=VALUE applied to
+      that fork only, winning key by key. NAME- removes a variable the baseline
+      workload has; ${resource:name.key} references a resource output. A value is
+      everything after the first '=', including any '#': there are no trailing
+      comments.
+    required: false
+  endpoints:
+    description: >
+      Multiline name=URL preview endpoints, e.g. frontend=http://frontend.web.svc:8080.
+      Targets are in-cluster addresses, so these can point at workloads this
+      sandbox does not fork.
+    required: false
+  resources:
+    description: 'YAML/JSON list of {name, plugin, params} resources provisioned by plugins'
+    required: false
+
+  # ── Bring your own document ───────────────────────
+  template-file:
+    description: >
+      Path to a sandbox spec template in your repository, using @{var} placeholders
+      bound by `set`. Your document owns the shape of the sandbox; identity and
+      lifecycle stay with the Action. It must contain `name: '@{name}'` (or a
+      literal name) and `cluster: '@{cluster}'` (or a literal cluster); the
+      Action binds both for you. Exclusive with `spec` and with `fork`; the
+      remaining shape inputs are ignored with a warning naming each one.
+    required: false
+  set:
+    description: 'Multiline var=value bindings for the template'
+    required: false
+  spec:
+    description: >
+      Full inline sandbox spec (name + spec), for a document you build in the
+      workflow itself. Exclusive with `template-file` and with `fork`; the
+      remaining shape inputs are ignored with a warning naming each one. It
+      is not a template: `@{var}` in it is applied as written.
+    required: false
+
+  # ── Meta ──────────────────────────────────────────
+  dry-run:
+    description: 'Render and validate only; do not apply'
+    default: 'false'
+  cli-version:
+    description: >
+      Signadot CLI version to use, e.g. v1.9.0, or "latest". A pinned version is
+      always the one that runs. With "latest", a signadot already on PATH is used
+      if there is one. SIGNADOT_CLI_PATH overrides both.
+    default: 'latest'
+
+outputs:
+  sandbox-name:
+    description: 'Created/updated sandbox name. Set before the apply, so a cleanup step running on failure can use it.'
+  dashboard-url:
+    description: 'The sandbox in the Signadot dashboard'
+  routing-key:
+    description: 'For header-based request routing'
+  preview-urls:
+    description: 'JSON map endpoint -> URL'
+  preview-url:
+    description: 'Convenience when exactly one endpoint'
+  rendered-spec:
+    description: 'The sandbox spec that was applied, or with `dry-run`, the one that would be'
+
+runs:
+  using: 'node24'
+  main: 'dist/main/index.js'

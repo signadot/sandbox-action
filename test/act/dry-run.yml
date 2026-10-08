@@ -1,0 +1,115 @@
+# Dry-run examples for local use with `act`. Kept outside .github/workflows so
+# it does not appear in the repository's Actions tab; act is pointed at it with
+# `-W`, which `pnpm run act` does for you.
+#
+#   pnpm run act                    # every job below
+#   pnpm run act -- -j single-fork  # just one
+#
+# Every job here is a dry run: nothing is applied and no credentials are needed.
+name: act dry-run
+
+on: [pull_request]
+
+jobs:
+  single-fork:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: sandbox
+        uses: ./
+        with:
+          api-key: dry-run-needs-no-credentials
+          cluster: demo
+          fork: kind=Deployment,namespace=hotrod-istio,name=route
+          image: signadot/hotrod:latest
+          env: |
+            LOG_LEVEL=debug
+          dry-run: true
+
+      - name: Print the spec
+        run: |
+          echo "name: ${{ steps.sandbox.outputs.sandbox-name }}"
+          cat <<'SPEC'
+          ${{ steps.sandbox.outputs.rendered-spec }}
+          SPEC
+
+  multi-fork:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: sandbox
+        uses: ./
+        with:
+          api-key: dry-run-needs-no-credentials
+          cluster: demo
+          image: 'signadot/hotrod-{workload}:{sha}'
+          fork: |
+            kind=Deployment,namespace=hotrod-istio,name=route
+            kind=Deployment,namespace=hotrod-istio,name=frontend
+            kind=Deployment,namespace=hotrod-istio,name=customer,image=signadot/hotrod:latest
+          env: |
+            LOG_LEVEL=debug
+            frontend:LOG_LEVEL=trace
+          endpoints: |
+            frontend=http://frontend.hotrod-istio.svc:8080
+          labels: |
+            team=checkout
+          dry-run: true
+
+      - name: Print the spec
+        run: |
+          echo "name: ${{ steps.sandbox.outputs.sandbox-name }}"
+          cat <<'SPEC'
+          ${{ steps.sandbox.outputs.rendered-spec }}
+          SPEC
+
+  computed-forks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The shape a monorepo workflow computes from changed paths.
+      - id: mkforks
+        run: |
+          echo "list=$(jq -cn '["route","frontend"] | map({kind: "Deployment", namespace: "hotrod-istio", name: .})')" >> "$GITHUB_OUTPUT"
+
+      - id: sandbox
+        uses: ./
+        with:
+          api-key: dry-run-needs-no-credentials
+          cluster: demo
+          image: 'signadot/hotrod-{workload}:{sha}'
+          fork: ${{ steps.mkforks.outputs.list }}
+          dry-run: true
+
+      - name: Print the spec
+        run: |
+          echo "name: ${{ steps.sandbox.outputs.sandbox-name }}"
+          cat <<'SPEC'
+          ${{ steps.sandbox.outputs.rendered-spec }}
+          SPEC
+
+  from-template:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: sandbox
+        uses: ./from-template
+        with:
+          api-key: dry-run-needs-no-credentials
+          template-file: test/e2e/template.yaml
+          set: |
+            cluster=demo
+            namespace=hotrod-istio
+            image=signadot/hotrod:latest
+          dry-run: true
+
+      - name: Print the spec
+        run: |
+          echo "name: ${{ steps.sandbox.outputs.sandbox-name }}"
+          cat <<'SPEC'
+          ${{ steps.sandbox.outputs.rendered-spec }}
+          SPEC

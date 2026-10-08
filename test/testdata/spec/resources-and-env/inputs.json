@@ -1,0 +1,7 @@
+{
+  "_comment": "Resource plugins wired into fork env through the ${resource:name.key} reference, and the escape that keeps a literal ${resource:...} out of the reference machinery.",
+  "cluster": "prod-eks",
+  "resources": "- name: customerdb\n  plugin: hotrod-mariadb\n  params:\n    dbname: customer\n- name: cache\n  plugin: redis\n",
+  "fork": "kind=Deployment,namespace=hotrod,name=customer,image=ghcr.io/acme/customer:abc1234",
+  "env": "DB_HOST=${resource:customerdb.host}\nDB_PORT=${resource:customerdb.port}\nCACHE_URL=${resource:cache.url}\nLITERAL=$${resource:customerdb.host}\nPLAIN=debug\nEMPTY=\n"
+}

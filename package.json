@@ -1,0 +1,44 @@
+{
+  "name": "signadot-sandbox-action",
+  "version": "0.1.0",
+  "description": "GitHub Action to create a Signadot sandbox for a pull request",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/signadot/sandbox-action.git"
+  },
+  "license": "Apache-2.0",
+  "author": "Signadot",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "run-local": "test/local/run-local.mjs",
+    "act": "test/act/act.sh",
+    "build:main": "ncc build src/main.ts -o dist/main --source-map --license licenses.txt",
+    "build:delete": "ncc build src/delete.ts -o dist/delete --source-map --license licenses.txt",
+    "build:install": "ncc build src/install.ts -o dist/install --source-map --license licenses.txt",
+    "build:from-template": "ncc build src/from-template.ts -o dist/from-template --source-map --license licenses.txt",
+    "build": "pnpm run build:main && pnpm run build:from-template && pnpm run build:delete && pnpm run build:install",
+    "test": "tsc --noEmit false --outDir .test-build --sourceMap false && node --test .test-build/test/*.test.js",
+    "all": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run build",
+    "format": "biome check --write ."
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/tool-cache": "^2.0.2",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.13.6",
+    "@vercel/ncc": "^0.38.1",
+    "typescript": "^5.5.4"
+  }
+}

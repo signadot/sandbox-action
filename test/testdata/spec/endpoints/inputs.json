@@ -1,0 +1,7 @@
+{
+  "_comment": "Preview URLs for services the sandbox does not fork: endpoints are sandbox-level, never coupled to a fork. The orders service is forked, but the storefront is what a reviewer opens.",
+  "cluster": "staging",
+  "fork": "kind=Deployment,namespace=shop,name=orders,image=ghcr.io/acme/orders:deadbeef",
+  "env": "FEATURE_FLAGS=preview",
+  "endpoints": "storefront=http://storefront.shop.svc:80\norders=http://orders.shop.svc:80"
+}

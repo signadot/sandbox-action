@@ -1,0 +1,45 @@
+name: CI
+
+# Typecheck, lint, unit-test and rebuild the bundle, and refuse a commit whose
+# dist/ does not match its source.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  action:
+    name: Action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
+      - run: pnpm run lint
+      - run: pnpm test
+      - run: pnpm run build
+
+      # dist/ is committed because GitHub Actions runs the bundled JavaScript
+      # directly. A stale bundle means the Action that runs is not the source
+      # that was reviewed, so this fails the build until it is regenerated.
+      - name: Verify dist/ is committed and up to date
+        run: |
+          tracked=$(git ls-files dist | wc -l)
+          if [ "$tracked" -eq 0 ]; then
+            echo "::error::no files under dist/ are tracked"
+            exit 1
+          fi
+          if [ -n "$(git status --porcelain dist)" ]; then
+            echo "::error::dist/ is out of date. Run 'pnpm run build' and commit the result."
+            git --no-pager diff -- dist
+            exit 1
+          fi

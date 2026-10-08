@@ -1,0 +1,37 @@
+name: Bug report
+description: Something the Action did that it shouldn't have, or didn't do that it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security problems go to security@signadot.com, not here. See SECURITY.md.
+        Remove your API key and anything else private from what you paste below.
+  - type: input
+    id: action-version
+    attributes:
+      label: Action version
+      placeholder: signadot/sandbox-action@v0.1.0
+    validations:
+      required: true
+  - type: input
+    id: cli-version
+    attributes:
+      label: signadot CLI version
+      description: The step log says which CLI it ran.
+      placeholder: v1.9.0
+  - type: textarea
+    id: inputs
+    attributes:
+      label: The step's inputs
+      description: The `with:` block of the step.
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what you expected
+      description: "Include the error from the step log. A `dry-run: true` run's `rendered-spec` output helps too, but redact anything sensitive in it first, such as env var values."
+    validations:
+      required: true

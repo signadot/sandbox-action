@@ -1,0 +1,6 @@
+{
+  "_comment": "A repository name long enough that the derived <repo>-<n> name does not fit the API limit: the repository is truncated and hash-tagged, and the pull request number stays whole at the end.",
+  "cluster": "prod-eks",
+  "fork": "kind=Deployment,namespace=hotrod,name=route",
+  "image": "ghcr.io/acme/route:abc1234"
+}

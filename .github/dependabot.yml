@@ -1,0 +1,29 @@
+version: 2
+updates:
+
+  # Version updates are off (open-pull-requests-limit: 0). Security updates
+  # still run, and each security group puts every fix for that ecosystem into
+  # one PR across the directories listed.
+  #
+  # dist/ is committed and CI fails when it is stale, so a fix to a runtime
+  # dependency needs `npm run build` pushed to the Dependabot branch.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 0
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directories:
+      - /
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 0
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]

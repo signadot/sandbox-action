@@ -1,0 +1,7 @@
+{
+  "_comment": "Several forks sharing one image pattern, env applied to all of them with one fork's own value winning, and one fork pinning its image inline instead.",
+  "cluster": "prod-eks",
+  "image": "ghcr.io/acme/{workload}:{sha}",
+  "env": "DEPLOY_ENV=sandbox\nLOG_LEVEL=info\nroute:LOG_LEVEL=debug",
+  "fork": "kind=Deployment,namespace=hotrod,name=route\nkind=Rollout,namespace=web,name=frontend\nkind=Deployment,namespace=hotrod,name=customer,image=ghcr.io/acme/customer:pinned"
+}

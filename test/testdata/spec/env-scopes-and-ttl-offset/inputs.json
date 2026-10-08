@@ -1,0 +1,9 @@
+{
+  "_comment": "Env with every scope the grammar has — for every fork, for one fork, a removal for every fork and a removal for one — plus a ttl that counts from the last apply.",
+  "cluster": "prod-eks",
+  "ttl": "2d",
+  "ttl-offset-from": "updatedAt",
+  "image": "ghcr.io/acme/{workload}:abc1234",
+  "env": "LOG_LEVEL=debug\nDEBUG_TOOLBAR-\nfrontend:LOG_LEVEL=trace\nfrontend:TRACING-\n",
+  "fork": "kind=Deployment,namespace=hotrod,name=route\nkind=Deployment,namespace=hotrod,name=frontend"
+}

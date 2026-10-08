@@ -1,0 +1,90 @@
+name: 'Signadot Sandbox from template'
+description: 'Create a Signadot sandbox from a @{var} spec template in your repository'
+author: 'Signadot'
+
+# This is the main action with `template-file` required, kept as its own entry
+# point because that is how people look for it. Anything here works there too, so a
+# workflow that outgrows the flat inputs can add `template-file` in place rather
+# than switching actions.
+
+inputs:
+  api-key:
+    description: 'Signadot API key. Required unless `dry-run` is true, which needs no credentials.'
+    required: false
+  org:
+    description: 'Signadot org name (required unless resolvable from config or SIGNADOT_ORG)'
+    required: false
+  cluster:
+    description: >
+      Cluster name in Signadot. It fills `cluster: '@{cluster}'` in your template,
+      and wins over a literal cluster there — which cluster a workflow targets is
+      a property of the workflow, not of a file committed to the repository. The
+      template has to contain one or the other: the CLI will not render it without.
+    required: false
+
+  template-file:
+    description: >
+      Path to a sandbox spec template using @{var} placeholders. It must contain
+      `name: '@{name}'` (or a literal name) and `cluster: '@{cluster}'` (or a
+      literal cluster); the Action binds both for you.
+    required: true
+  set:
+    description: 'Multiline var=value bindings for the template'
+    required: false
+
+  name:
+    description: 'Override the name the Action derives, or the one your template sets. Used exactly as written; at most 30 lowercase letters, digits and -, starting with a letter.'
+    required: false
+  description:
+    description: 'Applied unless the template sets one'
+    required: false
+  ttl:
+    description: 'Applied unless the template sets one. Unset by default.'
+    required: false
+  ttl-offset-from:
+    description: 'What the ttl counts from: createdAt (the default) or updatedAt. Only with `ttl`.'
+    required: false
+  labels:
+    description: 'Multiline KEY=VALUE sandbox labels, merged with any in the template'
+    required: false
+  lifecycle-labels:
+    description: >
+      Stamp the signadot/github-repo and signadot/github-pull-request labels so
+      the Signadot GitHub App can delete the sandbox when the pull request closes.
+      A template that names a different pull request fails the step; false says
+      that is deliberate.
+    default: 'true'
+
+  wait:
+    description: 'Wait for the sandbox to be Ready'
+    default: 'true'
+  wait-timeout:
+    description: 'How long to wait for Ready'
+    default: '10m'
+  dry-run:
+    description: 'Render and validate only; do not apply'
+    default: 'false'
+  cli-version:
+    description: >
+      Signadot CLI version to use, e.g. v1.9.0, or "latest". A pinned version is
+      always the one that runs. With "latest", a signadot already on PATH is used
+      if there is one. SIGNADOT_CLI_PATH overrides both.
+    default: 'latest'
+
+outputs:
+  sandbox-name:
+    description: 'Created/updated sandbox name. Set before the apply, so a cleanup step running on failure can use it.'
+  dashboard-url:
+    description: 'The sandbox in the Signadot dashboard'
+  routing-key:
+    description: 'For header-based request routing'
+  preview-urls:
+    description: 'JSON map endpoint -> URL'
+  preview-url:
+    description: 'Convenience when exactly one endpoint'
+  rendered-spec:
+    description: 'The sandbox spec that was applied, or with `dry-run`, the one that would be'
+
+runs:
+  using: 'node24'
+  main: '../dist/from-template/index.js'

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Signadot documentation
+    url: https://www.signadot.com/docs
+    about: How sandboxes, routing and the Signadot GitHub App work.
+  - name: Report a security vulnerability
+    url: https://github.com/signadot/sandbox-action/blob/main/SECURITY.md
+    about: Please email security@signadot.com rather than opening an issue.

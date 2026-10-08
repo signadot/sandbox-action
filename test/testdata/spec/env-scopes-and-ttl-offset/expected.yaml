@@ -1,0 +1,36 @@
+name: route-12
+spec:
+  cluster: prod-eks
+  labels:
+    signadot/github-pull-request: "12"
+    signadot/github-repo: acme/route
+  ttl:
+    duration: 2d
+    offsetFrom: updatedAt
+  forks:
+  - customizations:
+      images:
+      - image: ghcr.io/acme/route:abc1234
+      env:
+      - name: DEBUG_TOOLBAR
+        operation: delete
+      - name: LOG_LEVEL
+        value: debug
+    forkOf:
+      kind: Deployment
+      name: route
+      namespace: hotrod
+  - customizations:
+      images:
+      - image: ghcr.io/acme/frontend:abc1234
+      env:
+      - name: DEBUG_TOOLBAR
+        operation: delete
+      - name: LOG_LEVEL
+        value: trace
+      - name: TRACING
+        operation: delete
+    forkOf:
+      kind: Deployment
+      name: frontend
+      namespace: hotrod

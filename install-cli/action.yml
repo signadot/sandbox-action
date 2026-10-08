@@ -1,0 +1,24 @@
+name: 'Install Signadot CLI'
+description: 'Download the signadot CLI, verify it against the published checksums and add it to PATH'
+author: 'Signadot'
+
+# Useful on its own when a workflow wants to run signadot commands the other
+# sub-actions do not cover. The sandbox actions install the CLI themselves when
+# they need it, so this is not a prerequisite for them.
+
+inputs:
+  version:
+    description: >
+      CLI version to install, e.g. v1.7.0, or "latest". It is installed even when
+      a signadot is already on PATH, and put ahead of it.
+    default: 'latest'
+
+outputs:
+  cli-path:
+    description: 'Absolute path to the installed signadot binary'
+  version:
+    description: 'The version that was installed'
+
+runs:
+  using: 'node24'
+  main: '../dist/install/index.js'

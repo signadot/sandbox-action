@@ -1,0 +1,10 @@
+{
+  "_comment": "Opting out of the lifecycle labels, with an explicit name (there is no CI context to derive one from: this fixture has no env.json).",
+  "name": "my-explicit-sandbox",
+  "cluster": "prod-eks",
+  "ttl": "30m",
+  "labels": "team=payments",
+  "lifecycle-labels": "false",
+  "fork": "kind=Deployment,namespace=hotrod,name=route",
+  "image": "ghcr.io/acme/route:abc1234"
+}

@@ -1,0 +1,63 @@
+name: 'Delete Signadot Sandbox'
+description: 'Delete a Signadot sandbox by name, or by the name in a spec template'
+author: 'Signadot'
+
+# Deletion is a separate step rather than an option on creation, because only
+# the workflow knows when it should happen. Place it with your own `if:`
+# condition — `if: always()` to tear down at the end of a job, or in a workflow
+# triggered by pull_request: closed.
+#
+# For the common case of "delete when the PR closes", you do not need this at
+# all: the built-in signadot/github-* labels let the Signadot GitHub App do it.
+
+inputs:
+  api-key:
+    description: 'Signadot API key'
+    required: true
+  org:
+    description: 'Signadot org name (required unless resolvable from config or SIGNADOT_ORG)'
+    required: false
+
+  name:
+    description: >
+      Sandbox name, as given to the step that created it: neither step rewrites
+      it. Mutually exclusive with template-file.
+    required: false
+  template-file:
+    description: >
+      Spec template to take the name from. Only the name is read, so variables
+      the template uses elsewhere do not have to be bound at cleanup time. As on
+      create, @{name} is bound to the derived name unless `set` binds it. If the
+      create step set `name`, delete by `name` instead: this binds the derived
+      name, not the one that step used.
+    required: false
+  set:
+    description: 'Multiline var=value bindings for the template. Ignored, with a warning, when deleting by `name`.'
+    required: false
+
+  force:
+    description: 'Delete without deprovisioning resources'
+    default: 'false'
+  wait:
+    description: 'Wait for the sandbox to finish terminating'
+    default: 'true'
+  wait-timeout:
+    description: 'How long to wait for termination'
+    default: '5m'
+  cli-version:
+    description: >
+      Signadot CLI version to use, e.g. v1.9.0, or "latest". A pinned version is
+      always the one that runs. With "latest", a signadot already on PATH is used
+      if there is one. SIGNADOT_CLI_PATH overrides both.
+    default: 'latest'
+
+outputs:
+  sandbox-name:
+    description: >
+      The sandbox that was deleted. With `template-file`, set when the template's
+      name is a literal or exactly '@{name}', and otherwise left unset with a
+      warning.
+
+runs:
+  using: 'node24'
+  main: '../dist/delete/index.js'

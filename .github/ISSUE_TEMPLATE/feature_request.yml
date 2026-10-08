@@ -1,0 +1,16 @@
+name: Feature request
+description: Something you'd like the Action to do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you're trying to do
+      description: The workflow or sandbox you want, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you'd like the Action to do
+      description: An example `with:` block helps.

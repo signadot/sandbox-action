@@ -1,0 +1,17 @@
+# A repository spec template, the kind the from-template sub-action is for.
+# Variables are bound with the `set` input, using the same @{var} syntax as
+# `signadot sandbox apply -f FILE --set var=value`.
+name: e2e-from-template
+spec:
+  cluster: "@{cluster}"
+  forks:
+  - forkOf:
+      kind: Deployment
+      namespace: "@{namespace}"
+      name: route
+    customizations:
+      images:
+      - image: "@{image}"
+      env:
+      - name: LOG_LEVEL
+        value: debug
