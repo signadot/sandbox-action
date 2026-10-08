@@ -6,7 +6,7 @@ updates:
   # one PR across the directories listed.
   #
   # dist/ is committed and CI fails when it is stale, so a fix to a runtime
-  # dependency needs `npm run build` pushed to the Dependabot branch.
+  # dependency needs `pnpm run build` pushed to the Dependabot branch.
   - package-ecosystem: npm
     directory: /
     schedule:
