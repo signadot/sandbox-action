@@ -242,6 +242,26 @@ jobs:
           signadot --help | grep -q '^  sandbox' \
             || { echo "::error::signadot --help did not list the sandbox command"; exit 1; }
 
+      # By default the sub-action installs the release the Action pins, which is
+      # also what the sandbox actions run; "latest" resolves through the redirect
+      # github.com serves. Both paths are exercised.
+      - name: Check the default is the pinned release
+        run: |
+          pinned=$(sed -n "s/^export const DEFAULT_CLI = \"\(v[0-9.]*\)\";$/\1/p" src/cli.ts)
+          test -n "$pinned" || { echo "::error::could not read DEFAULT_CLI from src/cli.ts"; exit 1; }
+          test "${{ steps.install.outputs.version }}" = "$pinned" \
+            || { echo "::error::installed ${{ steps.install.outputs.version }}, expected the pin $pinned"; exit 1; }
+      - id: install-latest
+        uses: ./install-cli
+        with:
+          version: latest
+      - name: Check latest resolved to a release and runs
+        run: |
+          echo "${{ steps.install-latest.outputs.version }}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+' \
+            || { echo "::error::latest resolved to '${{ steps.install-latest.outputs.version }}'"; exit 1; }
+          "${{ steps.install-latest.outputs.cli-path }}" --help | grep -q '^  sandbox' \
+            || { echo "::error::the latest CLI did not list the sandbox command"; exit 1; }
+
   live:
     # Creates a real sandbox and deletes it at the end of the job.
     if: github.event_name == 'workflow_dispatch'

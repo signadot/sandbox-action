@@ -12,13 +12,22 @@ import type { Env } from "./context";
 // and --header all shipped in v1.9.0.
 const MIN_CLI = "v1.9.0";
 
+// The CLI this version of the Action runs unless told otherwise: the release it
+// was tested against. A pin, so that a CLI release cannot change what a pinned
+// Action does; `cli-version: latest` opts back in to tracking releases. The
+// action.yml files declare the same default, and a test keeps them in step.
+export const DEFAULT_CLI = "v1.9.0";
+
 const CLI_REPO = "signadot/cli";
 const CLI_PROJECT = "signadot-cli";
 const TOOL_NAME = "signadot";
 
 export interface CLI {
   path: string;
+  // The release tag when the Action installed it; "" when it was handed a binary
+  // and so knows only where it came from.
   version: string;
+  source?: "SIGNADOT_CLI_PATH" | "PATH";
 }
 
 // Exec runs a command the way @actions/exec does. It is a parameter so that the
@@ -40,12 +49,12 @@ export function defaultRunner(): Runner {
 //
 //  1. SIGNADOT_CLI_PATH, a directory or the binary itself: exactly that one, for
 //     a CLI built from source or put somewhere on purpose.
-//  2. A pinned cli-version (anything but "latest"): that version, installed
-//     into the tool cache unless an earlier step in the job already did. A
-//     signadot that happens to be on PATH does not count, since a pin that a
-//     runner's own CLI could override would not be a pin.
-//  3. "latest", the default: a signadot already on PATH, so that a preceding
-//     install-cli step wins; otherwise the latest release.
+//  2. "latest": a signadot already on PATH, so that a preceding install-cli
+//     step wins; otherwise the latest release.
+//  3. A pinned cli-version, which unset means DEFAULT_CLI: that version,
+//     installed into the tool cache unless an earlier step in the job already
+//     did. A signadot that happens to be on PATH does not count, since a pin
+//     that a runner's own CLI could override would not be a pin.
 //
 // cached finds the tool-cache install of a version, and install installs one;
 // both are parameters so the choice can be tested without a network.
@@ -58,24 +67,32 @@ export async function ensureCli(
   const explicit = overridePath(env);
   if (explicit) {
     core.info(`Using the signadot CLI named by SIGNADOT_CLI_PATH: ${explicit}`);
-    return { path: explicit, version: "" };
+    return { path: explicit, version: "", source: "SIGNADOT_CLI_PATH" };
   }
-  const pinned = version.trim();
-  if (pinned !== "" && pinned !== "latest") {
-    const tag = pinned.startsWith("v") ? pinned : `v${pinned}`;
-    const done = cached(tag);
-    if (done !== undefined) {
-      core.info(`Using signadot ${tag} from the tool cache: ${done}`);
-      return { path: done, version: tag };
+  const wanted = requested(version);
+  if (wanted === "latest") {
+    const onPath = lookPath(env);
+    if (onPath) {
+      core.info(`Using the signadot CLI already on PATH: ${onPath}`);
+      return { path: onPath, version: "", source: "PATH" };
     }
-    return install(tag);
+    return install(wanted);
   }
-  const onPath = lookPath(env);
-  if (onPath) {
-    core.info(`Using the signadot CLI already on PATH: ${onPath}`);
-    return { path: onPath, version: "" };
+  const done = cached(wanted);
+  if (done !== undefined) {
+    core.info(`Using signadot ${wanted} from the tool cache: ${done}`);
+    return { path: done, version: wanted };
   }
-  return install(version);
+  return install(wanted);
+}
+
+// requested reads a cli-version input: "latest" as itself, nothing as the
+// built-in pin, and anything else as a release tag, with or without its "v".
+export function requested(version: string): string {
+  const v = version.trim();
+  if (v === "latest") return v;
+  if (v === "") return DEFAULT_CLI;
+  return v.startsWith("v") ? v : `v${v}`;
 }
 
 // cachedCli is where installCli put a version in the tool cache, if it has.
@@ -189,14 +206,13 @@ async function get(url: string, init?: RequestInit, fetcher: typeof fetch = fetc
   }
 }
 
-// resolveVersion turns "latest" into a concrete tag by reading the redirect
-// github.com serves. This avoids api.github.com, whose unauthenticated rate
-// limit is shared per IP and so flakes on hosted runners.
+// resolveVersion turns a cli-version into a concrete tag. A pin, or nothing,
+// needs no network; "latest" is read off the redirect github.com serves, which
+// avoids api.github.com, whose unauthenticated rate limit is shared per IP and
+// so flakes on hosted runners.
 export async function resolveVersion(version: string, fetcher: typeof fetch = fetch): Promise<string> {
-  const v = version.trim();
-  if (v !== "" && v !== "latest") {
-    return v.startsWith("v") ? v : `v${v}`;
-  }
+  const v = requested(version);
+  if (v !== "latest") return v;
   const res = await get(`https://github.com/${CLI_REPO}/releases/latest`, { redirect: "manual" }, fetcher);
   const loc = res.headers.get("location") ?? "";
   const i = loc.lastIndexOf("/tag/");
@@ -292,9 +308,15 @@ function tooOld(cli: CLI, args: string[], r: Result): Error | undefined {
   if (cli.version !== "") {
     return new Error(`signadot ${cli.version} ${what}. Set \`cli-version\` to ${MIN_CLI} or later`);
   }
+  if (cli.source === "SIGNADOT_CLI_PATH") {
+    return new Error(
+      `the signadot CLI SIGNADOT_CLI_PATH names, ${cli.path}, ${what}. Point it at a ${MIN_CLI} or later ` +
+        `build, or unset it so the Action installs \`cli-version\` instead`,
+    );
+  }
   return new Error(
     `the signadot CLI found on PATH at ${cli.path} ${what}. Upgrade it — or whatever step put it ` +
-      `there — to ${MIN_CLI} or later, or remove it so the Action installs \`cli-version\` instead`,
+      `there — to ${MIN_CLI} or later, or set \`cli-version\` to a release so the Action installs that instead`,
   );
 }
 

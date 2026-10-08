@@ -9,9 +9,11 @@ author: 'Signadot'
 inputs:
   version:
     description: >
-      CLI version to install, e.g. v1.7.0, or "latest". It is installed even when
-      a signadot is already on PATH, and put ahead of it.
-    default: 'latest'
+      CLI release to install, e.g. v1.9.0, or "latest". The default is the release
+      this version of the Action was tested with, the same one the sandbox actions
+      run. It is installed even when a signadot is already on PATH, and put ahead
+      of it.
+    default: 'v1.9.0'
 
 outputs:
   cli-path:
