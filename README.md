@@ -42,17 +42,20 @@ there is deliberately no moving `@v0` or `@v1` tag: while the interface can stil
 change, moving to a new version should be a change you make, not one that happens to
 you.
 
-The Action needs `signadot` CLI **v1.9.0 or later**. Which CLI it runs, most explicit
-first:
+The Action needs `signadot` CLI **v1.9.0 or later**, and by default runs the release
+it was tested with, **v1.9.0**: pinning the Action pins the CLI too, so a CLI release
+cannot change what your workflow does. Which CLI it runs, most explicit first:
 
 | You set | It runs |
 |---|---|
 | `SIGNADOT_CLI_PATH` (a directory or the binary) | exactly that CLI |
-| `cli-version: v1.9.0` | v1.9.0, installed and checksum-verified unless an earlier step already did; a `signadot` on `PATH` is ignored |
-| `cli-version: latest` (the default) | a `signadot` already on `PATH`, so a preceding `install-cli` step wins; otherwise the latest release |
+| `cli-version: latest` | a `signadot` already on `PATH`, so a preceding `install-cli` step wins; otherwise the latest release |
+| `cli-version: v1.9.1` | that release, installed and checksum-verified unless an earlier step already did; a `signadot` on `PATH` is ignored |
+| nothing (the default) | the same, for v1.9.0 |
 
-Pin `cli-version` on a self-hosted runner whose own `signadot` may be older; the Action
-says so if the CLI it ends up with is too old.
+Set `cli-version` to take a newer CLI before the next Action release, or `latest` to
+track CLI releases as they ship. With `latest`, a self-hosted runner's own `signadot`
+is the one that runs, and the Action says so if it is too old.
 
 ## Quick start
 
@@ -355,12 +358,12 @@ run should get its own.
 ### Installing the CLI
 
 The sandbox actions install the CLI themselves when they need it, so this is only for
-workflows that want to run `signadot` commands directly.
+workflows that want to run `signadot` commands directly. It installs the same pinned
+release the sandbox actions run, so a job that uses both ends up with one CLI; set
+`version` to install another, or `latest`.
 
 ```yaml
 - uses: signadot/sandbox-action/install-cli@v0.1.0
-  with:
-    version: latest
 - run: signadot smart-test run --sandbox ${{ steps.sbx.outputs.sandbox-name }}
 ```
 
@@ -465,7 +468,7 @@ rather than dropping it quietly.
 | `wait` | Wait for Ready | `true` |
 | `wait-timeout` | How long to wait for Ready | `10m` |
 | `dry-run` | Render and validate only; do not apply | `false` |
-| `cli-version` | Signadot CLI version to use, e.g. `v1.9.0`, or `latest`. A pinned version always runs; with `latest`, a `signadot` on `PATH` is used if there is one. `SIGNADOT_CLI_PATH` overrides both | `latest` |
+| `cli-version` | Signadot CLI release to run, e.g. `v1.9.1`, or `latest`. A pinned version always runs; with `latest`, a `signadot` on `PATH` is used if there is one. `SIGNADOT_CLI_PATH` overrides both | `v1.9.0`, the release this version of the Action was tested with |
 
 ### The shape of the sandbox
 
@@ -735,8 +738,9 @@ pnpm run run-local -- --skip-build              # reuse the dist/ already built
 SIGNADOT_API_KEY=... pnpm run run-local -- --live
 ```
 
-With the default `cli-version: latest` it runs whichever `signadot` is on `PATH`, so
-put the build you want to test there, or point `SIGNADOT_CLI_PATH` at it.
+It asks for `cli-version: latest` unless your inputs say otherwise, so it runs whichever
+`signadot` is on `PATH`: put the build you want to test there, or point
+`SIGNADOT_CLI_PATH` at it.
 
 **The whole Action, faithfully.** [`act`](https://github.com/nektos/act) runs a real
 workflow file in a container, so `uses: ./`, input defaults and step outputs all
@@ -782,6 +786,11 @@ pnpm run all
 `dist/` is committed because GitHub runs the bundled JavaScript directly. Rebuild it
 with every change to `src/`; CI refuses a commit whose bundle does not match its
 source.
+
+To move the Action to a newer CLI release, change `DEFAULT_CLI` in `src/cli.ts` and the
+matching `default:` in `action.yml`, `from-template/action.yml`, `delete/action.yml`
+and `install-cli/action.yml`; a test fails while they disagree. The e2e workflow then
+runs against the new release, and the change ships with the next Action release.
 
 ## Contributing
 

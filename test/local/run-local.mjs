@@ -117,6 +117,11 @@ for (const name of Object.keys(inputs.inputs ?? {})) {
 
 const actionInputs = { ...defaults, ...(inputs.inputs ?? {}) };
 if ("dry-run" in declared) actionInputs["dry-run"] = opts.live ? "false" : "true";
+// The Action pins a CLI release by default. Here the point is to run the one on
+// PATH (or at SIGNADOT_CLI_PATH), so ask for "latest" unless the inputs say.
+for (const name of ["cli-version", "version"]) {
+  if (name in declared && !(name in (inputs.inputs ?? {}))) actionInputs[name] = "latest";
+}
 if (opts.live) {
   if (!process.env.SIGNADOT_API_KEY) fail("--live needs SIGNADOT_API_KEY in the environment");
   actionInputs["api-key"] = process.env.SIGNADOT_API_KEY;

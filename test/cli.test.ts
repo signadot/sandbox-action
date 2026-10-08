@@ -3,25 +3,54 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { describe, it } from "node:test";
+import yaml from "js-yaml";
 import { version } from "../package.json";
 import {
   CLIENT_CONTEXT_HEADER,
+  DEFAULT_CLI,
   ensureCli,
   lookPath,
   parseChecksums,
   reason,
+  requested,
   resetClientContext,
   resolveVersion,
   run,
   tryRun,
 } from "../src/cli";
-import { fakeExec } from "./harness";
+import { fakeExec, fixtureDir } from "./harness";
 
 // Everything between the Action and the signadot binary: finding or installing
 // it, and running it. The network and the binary are faked; what is under test
 // is what the Action makes of their answers.
 
 const cli = { path: "/opt/signadot", version: "v1.2.3" };
+
+describe("the default CLI", () => {
+  const root = path.join(fixtureDir(), "..", "..");
+
+  it("is the pin every action.yml declares, so a bump is one change checked here", () => {
+    const declared = (file: string, input: string) => {
+      const doc = yaml.load(fs.readFileSync(path.join(root, file), "utf8")) as {
+        inputs: Record<string, { default?: string }>;
+      };
+      return doc.inputs[input].default;
+    };
+    assert.match(DEFAULT_CLI, /^v\d+\.\d+\.\d+$/);
+    for (const file of ["action.yml", "from-template/action.yml", "delete/action.yml"]) {
+      assert.equal(declared(file, "cli-version"), DEFAULT_CLI, file);
+    }
+    assert.equal(declared("install-cli/action.yml", "version"), DEFAULT_CLI);
+  });
+
+  it("is what an unset cli-version asks for; latest stays latest", () => {
+    assert.equal(requested(""), DEFAULT_CLI);
+    assert.equal(requested("  \n"), DEFAULT_CLI);
+    assert.equal(requested("latest"), "latest");
+    assert.equal(requested("1.2.3"), "v1.2.3");
+    assert.equal(requested(" v1.2.3 "), "v1.2.3");
+  });
+});
 
 describe("resolveVersion", () => {
   const never: typeof fetch = async () => {
@@ -34,7 +63,11 @@ describe("resolveVersion", () => {
     assert.equal(await resolveVersion("  v1.2.3 \n", never), "v1.2.3");
   });
 
-  it("resolves latest, or nothing, from the redirect github.com serves", async () => {
+  it("takes nothing as the default pin, without touching the network", async () => {
+    assert.equal(await resolveVersion("", never), DEFAULT_CLI);
+  });
+
+  it("resolves latest from the redirect github.com serves", async () => {
     const seen: RequestInit[] = [];
     const redirect: typeof fetch = async (_url, init) => {
       seen.push(init ?? {});
@@ -44,7 +77,6 @@ describe("resolveVersion", () => {
       });
     };
     assert.equal(await resolveVersion("latest", redirect), "v1.4.0");
-    assert.equal(await resolveVersion("", redirect), "v1.4.0");
     // Following the redirect would fetch the release page for nothing.
     assert.equal(seen[0].redirect, "manual");
   });
@@ -122,17 +154,15 @@ describe("ensureCli", () => {
   const nothingCached = () => undefined;
 
   it("with latest, uses a CLI on PATH, and installs only when there is none", async () => {
-    for (const version of ["latest", ""]) {
-      const f = fakeInstall();
-      assert.deepEqual(await ensureCli(version, { PATH: dir }, nothingCached, f.install), {
-        path: onPath,
-        version: "",
-      });
-      assert.deepEqual(f.installed, [], version);
-    }
     const f = fakeInstall();
-    await ensureCli("latest", { PATH: "/nowhere" }, nothingCached, f.install);
-    assert.deepEqual(f.installed, ["latest"]);
+    assert.deepEqual(await ensureCli("latest", { PATH: dir }, nothingCached, f.install), {
+      path: onPath,
+      version: "",
+    });
+    assert.deepEqual(f.installed, []);
+    const g = fakeInstall();
+    await ensureCli("latest", { PATH: "/nowhere" }, nothingCached, g.install);
+    assert.deepEqual(g.installed, ["latest"]);
   });
 
   it("with a pinned version, installs that version even when a signadot is on PATH", async () => {
@@ -141,6 +171,15 @@ describe("ensureCli", () => {
       const got = await ensureCli(version, { PATH: dir }, nothingCached, f.install);
       assert.deepEqual(got, { path: "/cache/v1.9.0/signadot", version: "v1.9.0" }, version);
       assert.deepEqual(f.installed, ["v1.9.0"], version);
+    }
+  });
+
+  it("with no cli-version, installs the default pin: a CLI on PATH does not stand in for it", async () => {
+    for (const version of ["", "  "]) {
+      const f = fakeInstall();
+      const got = await ensureCli(version, { PATH: dir }, nothingCached, f.install);
+      assert.deepEqual(got, { path: `/cache/${DEFAULT_CLI}/signadot`, version: DEFAULT_CLI });
+      assert.deepEqual(f.installed, [DEFAULT_CLI]);
     }
   });
 

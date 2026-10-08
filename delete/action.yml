@@ -46,10 +46,13 @@ inputs:
     default: '5m'
   cli-version:
     description: >
-      Signadot CLI version to use, e.g. v1.9.0, or "latest". A pinned version is
-      always the one that runs. With "latest", a signadot already on PATH is used
-      if there is one. SIGNADOT_CLI_PATH overrides both.
-    default: 'latest'
+      Signadot CLI release to run, e.g. v1.9.0, or "latest". The default is the
+      release this version of the Action was tested with, so a CLI release cannot
+      change what a pinned Action does. A pinned version is always the one that
+      runs, installed unless an earlier step already did. With "latest", a signadot
+      already on PATH is used if there is one, otherwise the latest release.
+      SIGNADOT_CLI_PATH overrides both.
+    default: 'v1.9.0'
 
 outputs:
   sandbox-name:
