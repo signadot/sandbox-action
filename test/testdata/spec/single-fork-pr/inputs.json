@@ -1,6 +1,6 @@
 {
   "_comment": "The common case: one fork, an image built by this workflow.",
-  "cluster": "prod-eks",
+  "cluster": "stage-eks",
   "ttl": "2d",
   "labels": "team=payments",
   "fork": "kind=Deployment,namespace=hotrod,name=route",

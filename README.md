@@ -79,7 +79,7 @@ own `signadot` on `PATH`, or `SIGNADOT_CLI_PATH`.
   with:
     api-key: ${{ secrets.SIGNADOT_API_KEY }}
     org: acme
-    cluster: prod-eks
+    cluster: stage-eks
     fork: kind=Deployment,namespace=hotrod,name=route
     image: ghcr.io/acme/route:${{ github.sha }}
 
@@ -134,7 +134,7 @@ per fork; otherwise put `image=` on each line.
   with:
     api-key: ${{ secrets.SIGNADOT_API_KEY }}
     org: acme
-    cluster: prod-eks
+    cluster: stage-eks
     image: ghcr.io/acme/{workload}:${{ github.sha }}
     fork: |
       kind=Deployment,namespace=hotrod,name=route
@@ -147,7 +147,7 @@ per fork; otherwise put `image=` on each line.
   with:
     api-key: ${{ secrets.SIGNADOT_API_KEY }}
     org: acme
-    cluster: prod-eks
+    cluster: stage-eks
     fork: |
       kind=Deployment,namespace=hotrod,name=route,image=ghcr.io/acme/route:${{ github.sha }}
       kind=Deployment,namespace=web,name=frontend,image=ghcr.io/acme/frontend:${{ github.sha }}
@@ -184,7 +184,7 @@ starts with `#` is skipped.
   with:
     api-key: ${{ secrets.SIGNADOT_API_KEY }}
     org: acme
-    cluster: prod-eks
+    cluster: stage-eks
     ttl: 2d
     ttl-offset-from: updatedAt      # the clock restarts on every push
     image: ghcr.io/acme/{workload}:${{ github.sha }}
@@ -239,7 +239,7 @@ a `{kind, namespace, name}` object, with an optional `image`.
   with:
     api-key: ${{ secrets.SIGNADOT_API_KEY }}
     org: acme
-    cluster: prod-eks
+    cluster: stage-eks
     image: ghcr.io/acme/{workload}:${{ github.sha }}
     fork: ${{ steps.mkforks.outputs.list }}
 ```
@@ -257,7 +257,7 @@ one, so nothing else about the step changes:
 - uses: signadot/sandbox-action@v0.1.0
   with:
     api-key: ${{ secrets.SIGNADOT_API_KEY }}
-    cluster: prod-eks                        # unchanged
+    cluster: stage-eks                        # unchanged
     template-file: .signadot/sandbox.yaml    # replaces the fork inputs
     set: |
       image=ghcr.io/acme/route:${{ github.sha }}
@@ -298,7 +298,7 @@ name and no labels at all, a pull-request run applies:
 ```yaml
 name: acme-preview
 spec:
-  cluster: prod-eks
+  cluster: stage-eks
   forks:
   - customizations:
       images:

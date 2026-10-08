@@ -1,6 +1,6 @@
 name: hotrod-31
 spec:
-  cluster: prod-eks
+  cluster: stage-eks
   labels:
     signadot/github-pull-request: "31"
     signadot/github-repo: acme/hotrod

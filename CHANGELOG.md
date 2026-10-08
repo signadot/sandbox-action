@@ -14,7 +14,7 @@ sandbox for every pull request, from a few lines of workflow YAML.
   with:
     api-key: ${{ secrets.SIGNADOT_API_KEY }}
     org: acme
-    cluster: prod-eks
+    cluster: stage-eks
     fork: kind=Deployment,namespace=hotrod,name=route
     image: ghcr.io/acme/route:${{ github.sha }}
 ```

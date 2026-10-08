@@ -147,7 +147,7 @@ const route = "kind=Deployment,namespace=hotrod,name=route";
 const frontend = "kind=Rollout,namespace=web,name=frontend";
 
 describe("the fork inputs", () => {
-  const base = { cluster: "prod-eks" };
+  const base = { cluster: "stage-eks" };
 
   it("writes each fork exactly as its line says, and applies env to every fork", () => {
     const doc = buildFrom({ ...base, fork: `${route}\n${frontend}`, env: "LOG_LEVEL=debug" });
