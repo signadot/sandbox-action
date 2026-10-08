@@ -43,6 +43,23 @@ describe("the default CLI", () => {
     assert.equal(declared("install-cli/action.yml", "version"), DEFAULT_CLI);
   });
 
+  it("is the only release named on the README lines marked <!-- cli-pin -->", () => {
+    // The marker is invisible when rendered. Every version-looking token on a
+    // marked line has to be the pin, so a bump that misses the prose fails here.
+    const lines = fs.readFileSync(path.join(root, "README.md"), "utf8").split("\n");
+    const marked = lines.map((text, i) => ({ text, n: i + 1 })).filter((l) => l.text.includes("<!-- cli-pin -->"));
+    assert.ok(marked.length > 0, "README has no <!-- cli-pin --> lines; the check would be checking nothing");
+    for (const { text, n } of marked) {
+      const versions = text.match(/\bv\d+\.\d+\.\d+\b/g) ?? [];
+      assert.ok(versions.length > 0, `README.md:${n} is marked but names no release`);
+      assert.deepEqual(
+        versions,
+        versions.map(() => DEFAULT_CLI),
+        `README.md:${n} names ${versions.join(", ")}; the pin is ${DEFAULT_CLI}`,
+      );
+    }
+  });
+
   it("is what an unset cli-version asks for; latest stays latest", () => {
     assert.equal(requested(""), DEFAULT_CLI);
     assert.equal(requested("  \n"), DEFAULT_CLI);

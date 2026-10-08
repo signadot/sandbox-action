@@ -43,7 +43,7 @@ change, moving to a new version should be a change you make, not one that happen
 you.
 
 The Action needs `signadot` CLI **v1.9.0 or later**, and by default runs the release
-it was tested with, **v1.9.0**: pinning the Action pins the CLI too, so a CLI release
+it was tested with, **v1.9.0**: pinning the Action pins the CLI too, so a CLI release <!-- cli-pin -->
 cannot change what your workflow does. Which CLI it runs, most explicit first:
 
 | You set | It runs |
@@ -51,7 +51,7 @@ cannot change what your workflow does. Which CLI it runs, most explicit first:
 | `SIGNADOT_CLI_PATH` (a directory or the binary) | exactly that CLI |
 | `cli-version: latest` | a `signadot` already on `PATH`, so a preceding `install-cli` step wins; otherwise the latest release |
 | `cli-version: v1.9.1` | that release, installed and checksum-verified unless an earlier step already did; a `signadot` on `PATH` is ignored |
-| nothing (the default) | the same, for v1.9.0 |
+| nothing (the default) | the same, for v1.9.0 <!-- cli-pin --> |
 
 Set `cli-version` to take a newer CLI before the next Action release, or `latest` to
 track CLI releases as they ship. With `latest`, a self-hosted runner's own `signadot`
@@ -468,7 +468,7 @@ rather than dropping it quietly.
 | `wait` | Wait for Ready | `true` |
 | `wait-timeout` | How long to wait for Ready | `10m` |
 | `dry-run` | Render and validate only; do not apply | `false` |
-| `cli-version` | Signadot CLI release to run, e.g. `v1.9.1`, or `latest`. A pinned version always runs; with `latest`, a `signadot` on `PATH` is used if there is one. `SIGNADOT_CLI_PATH` overrides both | `v1.9.0`, the release this version of the Action was tested with |
+| `cli-version` | Signadot CLI release to run, e.g. `v1.9.0`, or `latest`. A pinned version always runs; with `latest`, a `signadot` on `PATH` is used if there is one. `SIGNADOT_CLI_PATH` overrides both | `v1.9.0`, the release this version of the Action was tested with <!-- cli-pin --> |
 
 ### The shape of the sandbox
 
@@ -787,10 +787,11 @@ pnpm run all
 with every change to `src/`; CI refuses a commit whose bundle does not match its
 source.
 
-To move the Action to a newer CLI release, change `DEFAULT_CLI` in `src/cli.ts` and the
+To move the Action to a newer CLI release, change `DEFAULT_CLI` in `src/cli.ts`, the
 matching `default:` in `action.yml`, `from-template/action.yml`, `delete/action.yml`
-and `install-cli/action.yml`; a test fails while they disagree. The e2e workflow then
-runs against the new release, and the change ships with the next Action release.
+and `install-cli/action.yml`, and the README lines carrying a `cli-pin` HTML comment;
+`pnpm test` fails while any of them disagree. The e2e workflow then runs against the new
+release, and the change ships with the next Action release.
 
 ## Contributing
 
