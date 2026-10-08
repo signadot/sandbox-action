@@ -1,3 +1,3 @@
-# Every path belongs to the engineering team, so a pull request from outside the
-# org gets a reviewer requested without anyone having to notice it.
+# Every path belongs to the engineering team. The main ruleset requires a code
+# owner's approval, so an approval from a bot does not count toward merging.
 * @signadot/engineering
