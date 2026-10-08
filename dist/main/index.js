@@ -32740,14 +32740,14 @@ async function ensureCli(version, env = process.env, cached = cachedCli, install
     const explicit = overridePath(env);
     if (explicit) {
         core.info(`Using the signadot CLI named by SIGNADOT_CLI_PATH: ${explicit}`);
-        return { path: explicit, version: "" };
+        return { path: explicit, version: "", source: "SIGNADOT_CLI_PATH" };
     }
     const wanted = requested(version);
     if (wanted === "latest") {
         const onPath = lookPath(env);
         if (onPath) {
             core.info(`Using the signadot CLI already on PATH: ${onPath}`);
-            return { path: onPath, version: "" };
+            return { path: onPath, version: "", source: "PATH" };
         }
         return install(wanted);
     }
@@ -32949,6 +32949,10 @@ function tooOld(cli, args, r) {
     const what = `does not support \`sandbox apply ${flag}\`, which the Action needs to render and validate the spec`;
     if (cli.version !== "") {
         return new Error(`signadot ${cli.version} ${what}. Set \`cli-version\` to ${MIN_CLI} or later`);
+    }
+    if (cli.source === "SIGNADOT_CLI_PATH") {
+        return new Error(`the signadot CLI SIGNADOT_CLI_PATH names, ${cli.path}, ${what}. Point it at a ${MIN_CLI} or later ` +
+            `build, or unset it so the Action installs \`cli-version\` instead`);
     }
     return new Error(`the signadot CLI found on PATH at ${cli.path} ${what}. Upgrade it — or whatever step put it ` +
         `there — to ${MIN_CLI} or later, or set \`cli-version\` to a release so the Action installs that instead`);

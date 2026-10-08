@@ -50,12 +50,14 @@ cannot change what your workflow does. Which CLI it runs, most explicit first:
 |---|---|
 | `SIGNADOT_CLI_PATH` (a directory or the binary) | exactly that CLI |
 | `cli-version: latest` | a `signadot` already on `PATH`, so a preceding `install-cli` step wins; otherwise the latest release |
-| `cli-version: v1.9.1` | that release, installed and checksum-verified unless an earlier step already did; a `signadot` on `PATH` is ignored |
+| `cli-version: vX.Y.Z` | that release, installed and checksum-verified unless an earlier step already did; a `signadot` on `PATH` is ignored |
 | nothing (the default) | the same, for v1.9.0 <!-- cli-pin --> |
 
 Set `cli-version` to take a newer CLI before the next Action release, or `latest` to
 track CLI releases as they ship. With `latest`, a self-hosted runner's own `signadot`
-is the one that runs, and the Action says so if it is too old.
+is the one that runs, and the Action says so if it is too old. A pinned release is
+downloaded from github.com, so a runner that cannot reach it needs `latest` with its
+own `signadot` on `PATH`, or `SIGNADOT_CLI_PATH`.
 
 ## Quick start
 

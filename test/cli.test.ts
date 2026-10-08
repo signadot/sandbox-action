@@ -175,6 +175,7 @@ describe("ensureCli", () => {
     assert.deepEqual(await ensureCli("latest", { PATH: dir }, nothingCached, f.install), {
       path: onPath,
       version: "",
+      source: "PATH",
     });
     assert.deepEqual(f.installed, []);
     const g = fakeInstall();
@@ -216,7 +217,7 @@ describe("ensureCli", () => {
     for (const version of ["v1.9.0", "latest"]) {
       const f = fakeInstall();
       const got = await ensureCli(version, { PATH: dir, SIGNADOT_CLI_PATH: own }, nothingCached, f.install);
-      assert.deepEqual(got, { path: path.join(own, "signadot"), version: "" }, version);
+      assert.deepEqual(got, { path: path.join(own, "signadot"), version: "", source: "SIGNADOT_CLI_PATH" }, version);
       assert.deepEqual(f.installed, [], version);
     }
   });
@@ -297,8 +298,18 @@ describe("a CLI that predates --dry-run or --no-template", () => {
 
   it("is told to upgrade the one on PATH when that is what ran", async () => {
     await assert.rejects(
-      run({ path: "/usr/local/bin/signadot", version: "" }, auth, args, { env: {}, exec: old.exec }),
-      /^Error: the signadot CLI found on PATH at \/usr\/local\/bin\/signadot does not support `sandbox apply --dry-run`.*Upgrade it/,
+      run({ path: "/usr/local/bin/signadot", version: "", source: "PATH" }, auth, args, { env: {}, exec: old.exec }),
+      /^Error: the signadot CLI found on PATH at \/usr\/local\/bin\/signadot does not support `sandbox apply --dry-run`.*Upgrade it.*or set `cli-version`/,
+    );
+  });
+
+  it("is told to point SIGNADOT_CLI_PATH elsewhere when that named it: cli-version would do nothing", async () => {
+    await assert.rejects(
+      run({ path: "/src/cli/bin/signadot", version: "", source: "SIGNADOT_CLI_PATH" }, auth, args, {
+        env: {},
+        exec: old.exec,
+      }),
+      /^Error: the signadot CLI SIGNADOT_CLI_PATH names, \/src\/cli\/bin\/signadot, does not support `sandbox apply --dry-run`.*Point it at a v1\.9\.0 or later build, or unset it/,
     );
   });
 
