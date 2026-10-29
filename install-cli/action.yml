@@ -13,7 +13,7 @@ inputs:
       this version of the Action was tested with, the same one the sandbox actions
       run. It is installed even when a signadot is already on PATH, and put ahead
       of it.
-    default: 'v1.9.0'
+    default: 'v1.9.1'
 
 outputs:
   cli-path:
