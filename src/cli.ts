@@ -16,7 +16,7 @@ const MIN_CLI = "v1.9.0";
 // was tested against. A pin, so that a CLI release cannot change what a pinned
 // Action does; `cli-version: latest` opts back in to tracking releases. The
 // action.yml files declare the same default, and a test keeps them in step.
-export const DEFAULT_CLI = "v1.9.0";
+export const DEFAULT_CLI = "v1.9.1";
 
 const CLI_REPO = "signadot/cli";
 const CLI_PROJECT = "signadot-cli";
